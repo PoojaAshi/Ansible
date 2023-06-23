@@ -1,0 +1,72 @@
+---
+- name: Provision EC2 instances and configure master/slaves
+  hosts: localhost
+  gather_facts: false
+  become: false
+
+  vars:
+    instance_count: 3
+    instance_type: t2.micro
+    ami_id: ami-xxxxxxxxxxxxx
+    subnet_id: subnet-xxxxxxxxxxxxx
+    security_group: sg-xxxxxxxxxxxxx
+    key_name: my_key_pair
+
+  tasks:
+    - name: Provision EC2 instances
+      ec2:
+        region: us-east-1
+        instance_type: "{{ instance_type }}"
+        image: "{{ ami_id }}"
+        subnet_id: "{{ subnet_id }}"
+        group: "{{ security_group }}"
+        key_name: "{{ key_name }}"
+        count: "{{ instance_count }}"
+        wait: true
+      register: ec2_instances
+
+    - name: Add EC2 instances to inventory
+      add_host:
+        name: "{{ item.public_ip }}"
+        groups: "{{ 'master' if loop.index == 1 else 'slaves' }}"
+      loop: "{{ ec2_instances.instances }}"
+
+    - name: Configure master instance
+      hosts: master
+      gather_facts: true
+      become: true
+      tasks:
+        - name: Install and configure master software
+          # Your tasks to configure the master go here
+
+    - name: Configure slave instances
+      hosts: slaves
+      gather_facts: true
+      become: true
+      tasks:
+        - name: Install and configure slave software
+          # Your tasks to configure the slaves go here
+
+
+
+
+
+
+
+          n this playbook:
+
+The instances are provisioned using the ec2 module and registered as ec2_instances.
+The add_host task dynamically adds the instances to the inventory, placing the first instance in the master group and the rest in the slaves group.
+The playbook then configures the master instance separately by targeting the master group and executing the tasks defined under Configure master instance.
+Similarly, the slave instances are configured by targeting the slaves group and executing the tasks defined under Configure slave instances.
+Make sure to replace the variables (instance_type, ami_id, subnet_id, security_group, key_name) with the appropriate values for your environment.
+
+To run the playbook, save it in a file (e.g., ec2-configuration-playbook.yml) and execute the following command
+
+ansible-playbook ec2-configuration-playbook.yml
+
+
+This playbook will provision three EC2 instances, dynamically add them to the inventory, and configure the master and slave instances separately based on the defined tasks.
+
+Please note that you need to have valid AWS credentials configured on the machine running Ansible, and ensure that the required AWS permissions are granted for provisioning EC2 instances.
+

@@ -1,0 +1,100 @@
+# To create three EC2 instances and configure one as a master and the other two as slaves, you can use an Ansible playbook with the following steps:
+
+# Set up your Ansible inventory: Create an inventory file (e.g., hosts.ini) and define the three EC2 instances. You can specify their IP addresses or hostnames and separate them into groups for the master and slaves. For example:[master]
+master_instance ansible_host=<master_ip_address>
+
+[slaves]
+slave1_instance ansible_host=<slave1_ip_address>
+slave2_instance ansible_host=<slave2_ip_address>
+
+#Replace <master_ip_address>, <slave1_ip_address>, and <slave2_ip_address> with the actual IP addresses of your EC2 instances.
+#Create the playbook: Create a playbook file (e.g., ec2-configuration-playbook.yml) and define the necessary tasks. Here's an example:
+---
+- name: Provision EC2 instances and configure master/slave
+  hosts: all
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Provision EC2 instances
+      ec2:
+        key_name: my_key_pair
+        region: us-east-1
+        instance_type: t2.micro
+        image: ami-xxxxxxxxxxxxx
+        wait: true
+        count: 3
+        group: my_security_group
+      register: ec2_instances
+
+    - name: Add EC2 instances to inventory
+      add_host:
+        name: "{{ item.public_ip }}"
+        groups: "{{ item.tags.Name }}"
+      with_items: "{{ ec2_instances.instances }}"
+
+    - name: Configure master instance
+      hosts: master
+      tasks:
+        - name: Install master software
+          # Your tasks to configure the master go here
+
+    - name: Configure slave instances
+      hosts: slaves
+      tasks:
+        - name: Install slave software
+          # Your tasks to configure the slaves go here
+
+#
+Connection to 13.127.200.224 closed.
+ubuntu@ip-172-31-1-77:~$ vi create_EC2_instance.yml
+ubuntu@ip-172-31-1-77:~$ vi master_slave_config.yml
+  hosts: all
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Provision EC2 instances
+      ec2:
+        key_name: my_key_pair
+        region: us-east-1
+        instance_type: t2.micro
+        image: ami-xxxxxxxxxxxxx
+        wait: true
+        count: 3
+        group: my_security_group
+      register: ec2_instances
+
+    - name: Add EC2 instances to inventory
+      add_host:
+        name: "{{ item.public_ip }}"
+        groups: "{{ item.tags.Name }}"
+      with_items: "{{ ec2_instances.instances }}"
+
+    - name: Configure master instance
+      hosts: master
+      tasks:
+        - name: Install master software
+          # Your tasks to configure the master go here
+
+    - name: Configure slave instances
+      hosts: slaves
+      tasks:
+        - name: Install slave software
+          # Your tasks to configure the slaves go here
+
+#
+
+#
+Customize the playbook: Update the playbook tasks under "Install master software" and "Install slave software" sections with the actual tasks and configuration you want to perform on the respective instances.
+
+Run the playbook: Execute the playbook using the following command:
+
+  ansible-playbook -i hosts.ini ec2-configuration-playbook.yml
+
+  Make sure you replace hosts.ini with your actual inventory file name.
+
+This playbook will provision three EC2 instances, dynamically add them to the inventory, and configure the master and slave instances separately based on the provided tasks.
+
+Note: You need to have valid AWS credentials configured on the machine running Ansible, and ensure that the required AWS permissions are granted for provisioning EC2 instances. Additionally, replace my_key_pair, us-east-1, ami-xxxxxxxxxxxxx, and my_security_group in the playbook with the appropriate values for your AWS environment.
+

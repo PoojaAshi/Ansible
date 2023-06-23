@@ -1,0 +1,48 @@
+---
+- name: Create EC2 instances
+  hosts: localhost
+  gather_facts: false
+  become: false
+
+  vars:
+    instance_count: 3
+    instance_type: t2.micro
+    ami_id: ami-xxxxxxxxxxxxx
+    subnet_id: subnet-xxxxxxxxxxxxx
+    security_group: sg-xxxxxxxxxxxxx
+    key_name: my_key_pair
+
+  tasks:
+    - name: Provision EC2 instances
+      ec2:
+        region: us-east-1
+        instance_type: "{{ instance_type }}"
+        image: "{{ ami_id }}"
+        subnet_id: "{{ subnet_id }}"
+        group: "{{ security_group }}"
+        key_name: "{{ key_name }}"
+        count: "{{ instance_count }}"
+        wait: true
+      register: ec2_instances
+
+    - name: Add EC2 instances to inventory
+      add_host:
+        name: "{{ item.public_ip }}"
+        groups: "{{ 'master' if loop.index == 1 else 'slaves' }}"
+      loop: "{{ ec2_instances.instances }}"
+
+
+
+#Replace instance_count with the number of instances you want to create.
+#Update instance_type with the desired instance type.
+#Replace ami_id with the ID of the AMI (Amazon Machine Image) you want to use.
+#Set subnet_id to the ID of the subnet where you want to launch the instances.
+# Update security_group with the ID of the security group to associate with the instances.
+# Set key_name to the name of your SSH key pair.
+# he instances are registered as ec2_instances using the ec2 module.
+#The add_host task dynamically adds the instances to the inventory based on their public IP addresses.
+#The first instance is added to the master group, and the remaining instances are added to the slaves group.
+#Ensure you have valid AWS credentials configured on the machine running Ansible, and that the necessary permissions are granted to create EC2 instances.
+#ansible-playbook create-ec2-instances.yml == execute using following command
+#
+

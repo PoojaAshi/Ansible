@@ -1,0 +1,79 @@
+---
+- name: Service Deployment Playbook
+  hosts: all
+  become: true
+
+  tasks:
+    - name: Update system packages
+      apt:
+        update_cache: yes
+        upgrade: dist
+
+    - name: Install required packages
+      apt:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - nginx
+        - mysql-server
+        - python3
+        - nodejs
+
+    - name: Configure Nginx
+      template:
+        src: nginx.conf.j2
+        dest: /etc/nginx/nginx.conf
+      notify:
+        - Restart Nginx
+
+    - name: Start MySQL service
+      service:
+        name: mysql
+        state: started
+
+    - name: Clone project repository
+      git:
+        repo: https://github.com/your/repository.git
+        dest: /opt/myproject
+        version: master
+
+    - name: Install project dependencies
+      command: pip3 install -r /opt/myproject/requirements.txt
+
+    - name: Build and deploy frontend
+      command: npm run build
+      args:
+        chdir: /opt/myproject/frontend
+
+    - name: Configure project settings
+      template:
+        src: config.yml.j2
+        dest: /opt/myproject/config.yml
+
+    - name: Start project service
+      command: python3 /opt/myproject/main.py
+      async: 60
+      poll: 0
+
+  handlers:
+    - name: Restart Nginx
+      service:
+        name: nginx
+        state: restarted
+
+
+
+
+
+In this example, the playbook performs the following tasks:
+
+Updates system packages on all hosts.
+Installs required packages (Nginx, MySQL, Python3, Node.js) on all hosts.
+Configures Nginx by copying a template file.
+Starts the MySQL service.
+Clones the project repository from a Git repository.
+Installs project dependencies using pip3.
+Builds and deploys the frontend application.
+Configures project settings by copying a template file.
+Starts the project service.
+Defines a handler to restart Nginx whenever its configuration is modified.
